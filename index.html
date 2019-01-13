@@ -6,7 +6,7 @@
   <!-- Using this metatag users can't scale the page using pinchIn/out gestures on mobile devices -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <title>Ηλεκτρικά κυκλώματα</title> 
-  <script src="https://code.createjs.com/1.0.0/easeljs.min.js"></script>
+  <script src="easeljs.min.js"></script>
   <style type="text/css">
     /* Remove margins and HTML scrollbars */
     body, html  {
@@ -33,8 +33,14 @@
   </canvas>
 <script>
   var stage;
-  var resourceNames = ['background.svg','bar_home.svg', 'bar_help.svg', 'bar_about.svg', 'lightOn.svg', 'lightOff.svg','clipper.svg','ducky.svg','cable.svg','eraser.svg', 'chalk.svg']
-  var isConductive = [1 /*'clipper.svg'*/,0 /*'ducky.svg'*/, 1/*'cable.svg'*/, 0/*'eraser.svg'*/, 0/*'chalk.svg'*/]
+  var resourceNames = ['background.svg','bar_home.svg', 'bar_help.svg', 'bar_about.svg', 'lightOn.svg', 'lightOff.svg','clipper.svg','ducky.svg','cable.svg','eraser.svg', 'chalk.svg', 'coin.svg', 'key.svg'];
+  var isConductive = [1,0,1,0,0,1,1]
+  var origX = [0.18,0.28,0.38,0.23,0.33,0.65,0.8];
+  var origY = [0.18,0.12,0.18,0.37,0.39,0.23,0.27];
+  var targetX = [0.527,0.528,0.528,0.528,0.528,0.528,0.528];
+  var targetY = [0.85,0.8,0.845,0.84,0.84,0.8,0.84];
+  var scaleX = [0.67,0.7,0.65,0.65,0.65,0.14,0.7];
+  var scaleY = [0.67,0.7,0.65,0.65,0.65,0.14,0.7];
   var resourcesLoaded = 0;
   var resources = [];
   var ratio = 16/9;
@@ -51,6 +57,73 @@
   var currentToy = -1;
   var lightRay;
   var lightSector;
+
+
+  function xyCalc(tc)
+  //calculate origx and origy for toyclass tc
+  {
+    tc.toyImg.origX = origX[tc.toyImg.index]*stage.canvas.width;
+    tc.toyImg.origY = origY[tc.toyImg.index]*stage.canvas.height;
+    tc.toyImg.targetX = targetX[tc.toyImg.index]*stage.canvas.width;
+    tc.toyImg.targetY = targetY[tc.toyImg.index]*stage.canvas.height;
+  }
+  function toyClass(i){
+    this.toyImg = new createjs.Bitmap(imgByName(resourceNames[resourceNames.indexOf('clipper.svg')+i]));
+    this.toyImg.index = i;
+    this.toyImg.cond = isConductive[i];
+    xyCalc(this);
+    this.toyImg.on("pressmove",function(event){
+      if (currentToy == event.target.index){
+        //if the toy that is on the switch is moving the light must be off
+        light.image = imgByName('lightOff.svg');}
+      event.target.x = event.stageX;
+      event.target.y = event.stageY;
+      stage.update();
+    });
+    this.toyImg.on("pressup",function(event){
+      toyInd = event.target.index;
+      if ((Math.abs(event.stageX - event.target.targetX)<stage.canvas.width/20) && (Math.abs(event.stageY - event.target.targetY)<stage.canvas.height/15)){
+          if (currentToy != toyInd && currentToy != -1){//return the other toy back
+            toys[currentToy].toyImg.x = toys[currentToy].toyImg.origX;
+            toys[currentToy].toyImg.y = toys[currentToy].toyImg.origY;
+          }
+          event.target.x = event.target.targetX;
+          event.target.y = event.target.targetY;
+          currentToy = toyInd;
+          if (event.target.cond){
+            light.image = imgByName('lightOn.svg');
+          }
+          else{
+            light.image = imgByName('lightOff.svg')
+          }
+        }
+      else{//if you are not near the center return to original place
+          console.log("ti ston anemo");
+          event.target.x = event.target.origX;
+          event.target.y = event.target.origY;
+      }
+      stage.update();
+    });
+    this.resize = function(){
+      this.toyImg.regX = this.toyImg.image.width / 2;
+      this.toyImg.regY = this.toyImg.image.height/2;
+      this.toyImg.scaleX = stage.canvas.width / bg.image.width * scaleX[this.toyImg.index];
+      this.toyImg.scaleY = stage.canvas.width / bg.image.width * scaleY[this.toyImg.index];
+      var h = new createjs.Shape();
+      h.graphics.beginFill("#000").drawRect(0, 0, this.toyImg.image.width, this.toyImg.image.height);
+      this.toyImg.hitArea = h;
+      xyCalc(this);
+      if (this.toyImg.index == currentToy){
+        this.toyImg.x = this.toyImg.targetX;
+        this.toyImg.y = this.toyImg.targetY;
+      }
+      else{
+        this.toyImg.x = this.toyImg.origX;
+        this.toyImg.y = this.toyImg.origY;
+      }
+      stage.addChild(this.toyImg);
+  }
+}
 
   function init(){
     console.clear();
@@ -114,57 +187,8 @@ function queueComplete(event) {
   light = new createjs.Bitmap(imgByName('lightOff.svg'));
   light.regX = light.image.width/2;
   light.regY = light.image.height/2;
-  for (var i=0; i<5; i++){
-    toys[i] = new createjs.Bitmap(imgByName(resourceNames[resourceNames.indexOf('clipper.svg')+i]));
-    toys[i].on("pressmove",function(event){
-      event.target.x = event.stageX;
-      event.target.y = event.stageY;
-      stage.update();
-    });
-
-    toys[i].on("pressup",function(event){
-      var toyInd = toys.indexOf(event.target);
-      console.log(currentToy,toyInd);
-      console.log("inhere");
-      if ((event.stageX - stage.canvas.width * 0.475<stage.canvas.width/20) && (event.stageY - stage.canvas.height*0.85<stage.canvas.height/15)){
-        if ((currentToy == -1) || (currentToy == toyInd)){
-          event.target.x = stage.canvas.width * 0.475;
-          event.target.y = stage.canvas.height*0.85;
-          currentToy = toyInd;
-          if (isConductive[toyInd]){
-            light.image = imgByName('lightOn.svg');
-          }
-          else{
-            light.image = imgByName('lightOff.svg')
-          }
-
-        }
-        else{//if another toy is in replace it
-          event.target.x = stage.canvas.width *0.475;
-          event.target.y = stage.canvas.height*0.85;
-          //remove the previous current toy
-          toys[currentToy].x = toys[currentToy].origX;
-          toys[currentToy].y = toys[currentToy].origY;
-          currentToy = toyInd;
-          if (isConductive[toyInd]){
-            light.image = imgByName('lightOn.svg');
-          }
-          else{
-            light.image = imgByName('lightOff.svg')
-          }
-        }
-      }
-      else{//if you are not near the center return to original place
-          event.target.x = event.target.origX;
-          event.target.y = event.target.origY;
-          if (toyInd == currentToy){//if the current toy is moved back to the floor   
-            currentToy = -1;
-            castShadow();
-          }
-      }
-      stage.update();
-  });
-
+  for (var i=0; i<7; i++){
+    toys[i] = new toyClass(i);
   }//for each toy
  
   stage.update();
@@ -203,7 +227,7 @@ function resize() {
     menubar[i].scaleY = bbs / menubar[i].image.height;
     menubar[i].regX = menubar[i].image.width / 2;
     menubar[i].regY = menubar[i].image.height / 2;
-    menubar[i].x = (j + 1)*bbm + bbs/2 + j*bbs;
+    menubar[i].x = bbm + (j + 1)*bbm + bbs/2 + j*bbs;
     menubar[i].y = stage.canvas.height - bbm - bbs/2;
     // These copies are used to preserve the original scale on mouseover
     menubar[i].savedscaleX = menubar[i].scaleX;
@@ -219,52 +243,14 @@ function resize() {
 
   light.scaleX = stage.canvas.width / bg.image.width * 1.5;
   light.scaleY = stage.canvas.height / bg.image.height * 1.5;
-  light.y = stage.canvas.height *0.55;
-  light.x = stage.canvas.width * 0.695;
+  light.y = stage.canvas.height *0.555;
+  light.x = stage.canvas.width * 0.742;
   stage.addChild(light);
 
-  var xSoFar = 0;
-  for (var i=0; i<3; i++){
-    toys[i].regX = toys[i].image.width / 2;
-    toys[i].regY = toys[i].image.height;
-    toys[i].scaleX = stage.canvas.width / bg.image.width * 0.65;
-    toys[i].scaleY = stage.canvas.width / bg.image.width * 0.65;
-    toys[i].x = stage.canvas.width * 0.1 + xSoFar;
-    xSoFar += toys[i].image.width*toys[i].scaleX + stage.canvas.width/40;
-
-    toys[i].y = stage.canvas.height *0.18;
-    toys[i].origX = toys[i].x;
-    toys[i].origY = toys[i].y;
-    var h = new createjs.Shape();
-    h.graphics.beginFill("#000").drawRect(0, 0, toys[i].image.width, toys[i].image.height);
-    toys[i].hitArea = h;
-    if (i==currentToy){
-      toys[i].x = stage.canvas.width/2;
-      toys[i].y = stage.canvas.height/2;
-    }
-    stage.addChild(toys[i]);
-
+  for (var i=0; i<7; i++){
+    toys[i].resize();
   }
-  xSoFar = stage.canvas.width / 40;
-  for (var i=3; i<5; i++){
-    toys[i].regX = toys[i].image.width / 2;
-    toys[i].regY = toys[i].image.height;
-    toys[i].scaleX = stage.canvas.width / bg.image.width * 0.65;
-    toys[i].scaleY = stage.canvas.width / bg.image.width * 0.65;
-    toys[i].x = stage.canvas.width * 0.15 + xSoFar;
-    xSoFar += toys[i].image.width*toys[i].scaleX + stage.canvas.width/40;
 
-    toys[i].y = stage.canvas.height *0.39;
-    toys[i].origX = toys[i].x;
-    toys[i].origY = toys[i].y;
-    if (i==currentToy){
-        toys[i].x = stage.canvas.width *0.475;
-        toys[i].y = stage.canvas.height*0.85;
-
-    }
-    stage.addChild(toys[i]);
-
-  }
   
   // Bring statusText in front of everything
   statusText.textAlign = "right";
