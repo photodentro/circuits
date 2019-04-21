@@ -187,6 +187,7 @@
     stage.addChild(statusText);
     theHelp = new theHelp("Σύρε και άφησε στον διακόπτη το κατάλληλο αντικείμενο για να ανάψει η λάμπα.")
     theHelp.create();
+    theHelp.hide();
     resize();
     // Resource preloading
     for (var i = 0; i < resourceNames.length; i++) {
@@ -245,13 +246,10 @@ function queueComplete(event) {
   }//for each toy
  
   stage.update();
-  initLevel(0);
   resize();
   window.addEventListener('resize', resize, false);
 }
 
-function initLevel(newLevel) {
-}
 
 function resize() {
   // Resize the canvas element
