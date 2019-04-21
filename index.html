@@ -31,16 +31,17 @@
   <canvas id="mainCanvas" width="320" height="180">
     Your browser doesn't support HTML5!
   </canvas>
+  <audio id="audiohelp"><source src="resource/help.mp3" type="audio/mp3"></audio>
 <script>
   var stage;
-  var resourceNames = ['background.svg','bar_home.svg', 'bar_help.svg', 'bar_about.svg', 'lightOn.svg', 'lightOff.svg','clipper.svg','ducky.svg','cable.svg','eraser.svg', 'chalk.svg', 'coin.svg', 'key.svg'];
-  var isConductive = [1,0,1,0,0,1,1]
-  var origX = [0.18,0.28,0.38,0.23,0.33,0.65,0.8];
-  var origY = [0.18,0.12,0.18,0.37,0.39,0.23,0.27];
-  var targetX = [0.527,0.528,0.528,0.528,0.528,0.528,0.528];
-  var targetY = [0.85,0.8,0.845,0.84,0.84,0.8,0.84];
-  var scaleX = [0.67,0.7,0.65,0.65,0.65,0.14,0.7];
-  var scaleY = [0.67,0.7,0.65,0.65,0.65,0.14,0.7];
+  var resourceNames = ['background.svg','bar_home.svg', 'bar_help.svg', 'bar_about.svg', 'lightOn.svg', 'lightOff.svg','clipper.svg','cable.svg','eraser.svg', 'chalk.svg', 'coin.svg', 'key.svg'];
+  var isConductive = [1,1,0,0,1,1]
+  var origX = [0.18,0.38,0.28,0.75,0.65,0.85];
+  var origY = [0.45,0.45,0.435,0.295,0.23,0.27];
+  var targetX = [0.527,0.528,0.528,0.528,0.528,0.528];
+  var targetY = [0.85,0.845,0.84,0.84,0.8,0.84];
+  var scaleX = [0.67,0.65,0.65,0.65,0.14,0.7];
+  var scaleY = [0.67,0.65,0.65,0.65,0.14,0.7];
   var resourcesLoaded = 0;
   var resources = [];
   var ratio = 16/9;
@@ -57,6 +58,56 @@
   var currentToy = -1;
   var lightRay;
   var lightSector;
+  var theHelpBox;
+  var theHelpText;
+
+  function theHelp_hide(){
+      theHelpBox.visible = false;
+      theHelpText.visible = false;
+      stage.update();
+      document.getElementById('audiohelp').pause();
+  }
+
+  function theHelp(msg){
+    this.create = function(){
+      theHelpBox = new createjs.Shape();
+      theHelpBox.on("click",function(){
+        theHelp_hide();
+      });
+      theHelpText = new createjs.Text();
+      theHelpText.text = msg;
+      theHelpText.textAlign = 'center';
+    }
+
+    this.resize = function(){
+        theHelpBox.graphics.clear();
+        theHelpBox.x = 0.25*stage.canvas.width;
+        theHelpBox.y = 0.25*stage.canvas.height;
+        theHelpBox.graphics.beginFill('#ffffff').setStrokeStyle(2).beginStroke('#000000').drawRoundRect(0,0,stage.canvas.width/2,stage.canvas.height/2,stage.canvas.height/20);
+        theHelpBox.shadow = new createjs.Shadow("#000000", 5, 5, 10);
+        stage.addChild(theHelpBox);
+        theHelpText.x = theHelpBox.x + 5*stage.canvas.width/20;
+        theHelpText.y = theHelpBox.y + stage.canvas.width/20;
+        theHelpText.font = parseInt(stage.canvas.height/15) + "px serif";
+        theHelpText.lineWidth = stage.canvas.width/2.3;
+        stage.addChild(theHelpText);
+    }
+
+    this.show = function(){
+      stage.addChild(theHelpBox);
+      stage.addChild(theHelpText);
+      theHelpBox.visible = true;
+      theHelpText.visible = true;
+      document.getElementById('audiohelp').currentTime = 0;
+      document.getElementById('audiohelp').play();
+      stage.update();
+    }
+
+    this.hide = theHelp_hide;
+  }
+
+
+
 
 
   function xyCalc(tc)
@@ -134,6 +185,8 @@
     statusText.textAlign = "center";
     statusText.textBaseline = "middle";
     stage.addChild(statusText);
+    theHelp = new theHelp("Σύρε και άφησε στον διακόπτη το κατάλληλο αντικείμενο για να ανάψει η λάμπα.")
+    theHelp.create();
     resize();
     // Resource preloading
     for (var i = 0; i < resourceNames.length; i++) {
@@ -187,7 +240,7 @@ function queueComplete(event) {
   light = new createjs.Bitmap(imgByName('lightOff.svg'));
   light.regX = light.image.width/2;
   light.regY = light.image.height/2;
-  for (var i=0; i<7; i++){
+  for (var i=0; i<6; i++){
     toys[i] = new toyClass(i);
   }//for each toy
  
@@ -247,11 +300,11 @@ function resize() {
   light.x = stage.canvas.width * 0.742;
   stage.addChild(light);
 
-  for (var i=0; i<7; i++){
+  for (var i=0; i<6; i++){
     toys[i].resize();
   }
 
-  
+  theHelp.resize();
   // Bring statusText in front of everything
   statusText.textAlign = "right";
   statusText.textBaseline = "alphabetic";
@@ -262,7 +315,7 @@ function resize() {
 
 
 function onMenuHelp(event) {
-  alert("Βάλε αντικείμενα στην κενή θέση και δες αν ανάβει η λάμπα.");
+  theHelp.show();
 }
 
 function onMenuHome(event) {
